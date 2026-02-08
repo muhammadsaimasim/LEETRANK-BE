@@ -15,6 +15,7 @@ const UserSchema = new mongoose.Schema({
       easy: { type: Number, default: 0 },
       medium: { type: Number, default: 0 },
       hard: { type: Number, default: 0 },
+      avatar: String,
       ranking: Number,
       lastUpdated: Date
     }

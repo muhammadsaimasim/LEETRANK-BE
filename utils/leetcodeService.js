@@ -21,6 +21,7 @@ const fetchLeetCodeStats = async (username) => {
                     }
                     profile {
                         ranking
+                        userAvatar
                     }
                 }
             }
@@ -72,6 +73,7 @@ const fetchLeetCodeStats = async (username) => {
             medium: medium || 0,
             hard: hard || 0,
             ranking: userData.profile?.ranking || null,
+            avatar: userData.profile?.userAvatar || null,
             lastUpdated: new Date()
         };
     } catch (error) {
