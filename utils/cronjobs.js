@@ -8,7 +8,7 @@ const { fetchLeetCodeStats } = require('./leetcodeService');
 const updateAllUsersStats = async () => {
     try {
         console.log('Starting scheduled stats update...');
-        const users = await User.find();
+        const users = await User.find({ role: 'student', isVerified: true });
         let successCount = 0;
         let failCount = 0;
 
@@ -36,11 +36,11 @@ const updateAllUsersStats = async () => {
 
 /**
  * Initialize cron jobs
- * Runs every day at 2 AM
+ * Runs every day at 8 AM
  */
 const initCronJobs = () => {
-    // Update all users' stats daily at 2 AM
-    cron.schedule('0 2 * * *', async () => {
+    // Update all users' stats daily at 8 AM
+    cron.schedule('0 8 * * *', async () => {
         console.log('Running daily stats update cron job...');
         await updateAllUsersStats();
     });

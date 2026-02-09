@@ -15,17 +15,9 @@ const OTPSchema = new mongoose.Schema({
         enum: ['signup', 'forgot-password'], 
         required: true 
     },
-    registrationData: {
-        type: Object,
-        default: null
-    },
     verified: { 
         type: Boolean, 
         default: false 
-    },
-    resetToken: {
-        type: String,
-        default: null
     },
     expiresAt: { 
         type: Date, 

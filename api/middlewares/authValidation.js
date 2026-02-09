@@ -30,20 +30,26 @@ const validateRegister = [
         .isEmail().withMessage('Please provide a valid email address')
         .normalizeEmail()
         .isLength({ max: 255 }).withMessage('Email is too long'),
+
+    body('password')
+        .notEmpty().withMessage('Password is required')
+        .isLength({ min: 6, max: 128 }).withMessage('Password must be between 6 and 128 characters'),
+
+    body('role')
+        .optional()
+        .trim()
+        .isIn(['student', 'admin']).withMessage('Role must be student or admin'),
     
-    // body('password')
-    //     .notEmpty().withMessage('Password is required')
-    //     .isLength({ min: 6, max: 128 }).withMessage('Password must be between 6 and 128 characters')
-    //     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    //     .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)'),
-    
+    // LeetCode fields only required for non-admin signup
     body('leetcodeUsername')
+        .if(body('role').not().equals('admin'))
         .trim()
         .notEmpty().withMessage('LeetCode username is required')
         .isLength({ min: 1, max: 50 }).withMessage('LeetCode username must be between 1 and 50 characters')
         .matches(/^[a-zA-Z0-9_-]+$/).withMessage('LeetCode username can only contain letters, numbers, hyphens, and underscores'),
     
     body('leetcodeProfileURL')
+        .if(body('role').not().equals('admin'))
         .trim()
         .notEmpty().withMessage('LeetCode profile URL is required')
         .isURL().withMessage('Please provide a valid URL')
@@ -55,6 +61,7 @@ const validateRegister = [
         }),
     
     body('batch')
+        .if(body('role').not().equals('admin'))
         .trim()
         .notEmpty().withMessage('Batch is required')
         .matches(/^(19|20)\d{2}$/).withMessage('Batch must be a valid year (e.g., 2024)'),
@@ -101,8 +108,77 @@ const validateChangePassword = [
     handleValidationErrors
 ];
 
+// Verify OTP validation rules
+const validateVerifyOTP = [
+    body('email')
+        .trim()
+        .notEmpty().withMessage('Email is required')
+        .isEmail().withMessage('Please provide a valid email address')
+        .normalizeEmail(),
+    
+    body('otp')
+        .trim()
+        .notEmpty().withMessage('OTP is required')
+        .isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits')
+        .isNumeric().withMessage('OTP must contain only numbers'),
+
+    handleValidationErrors
+];
+
+// Forgot password validation rules (just email)
+const validateForgotPassword = [
+    body('email')
+        .trim()
+        .notEmpty().withMessage('Email is required')
+        .isEmail().withMessage('Please provide a valid email address')
+        .normalizeEmail(),
+
+    handleValidationErrors
+];
+
+// Reset password validation rules (email + otp + newPassword)
+const validateResetPassword = [
+    body('email')
+        .trim()
+        .notEmpty().withMessage('Email is required')
+        .isEmail().withMessage('Please provide a valid email address')
+        .normalizeEmail(),
+
+    body('otp')
+        .trim()
+        .notEmpty().withMessage('OTP is required')
+        .isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits')
+        .isNumeric().withMessage('OTP must contain only numbers'),
+
+    body('newPassword')
+        .notEmpty().withMessage('New password is required')
+        .isLength({ min: 6, max: 128 }).withMessage('Password must be between 6 and 128 characters'),
+
+    handleValidationErrors
+];
+
+// Resend OTP validation rules
+const validateResendOTP = [
+    body('email')
+        .trim()
+        .notEmpty().withMessage('Email is required')
+        .isEmail().withMessage('Please provide a valid email address')
+        .normalizeEmail(),
+    
+    body('type')
+        .trim()
+        .notEmpty().withMessage('OTP type is required')
+        .isIn(['signup', 'forgot-password']).withMessage('Type must be signup or forgot-password'),
+
+    handleValidationErrors
+];
+
 module.exports = {
     validateRegister,
     validateLogin,
-    validateChangePassword
+    validateChangePassword,
+    validateVerifyOTP,
+    validateForgotPassword,
+    validateResetPassword,
+    validateResendOTP
 };

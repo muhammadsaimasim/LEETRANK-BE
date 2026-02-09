@@ -6,8 +6,8 @@ const getLeaderboard = async (req, res) => {
     try {
         const { batch, department, limit = 100, sortBy = 'totalSolved' } = req.query;
 
-        // Build filter
-        const filter = {};
+        // Build filter (only show students on leaderboard)
+        const filter = { role: 'student' };
         if (batch) filter.batch = batch;
         if (department) filter.department = department;
 
@@ -34,7 +34,7 @@ const getLeaderboard = async (req, res) => {
 // Update all users' stats (Admin only)
 const updateAllStats = async (req, res) => {
     try {
-        const users = await User.find();
+        const users = await User.find({ role: 'student' });
         let successCount = 0;
         let failCount = 0;
 
@@ -67,7 +67,7 @@ const getTopPerformers = async (req, res) => {
     try {
         const { limit = 10 } = req.query;
 
-        const topUsers = await User.find()
+        const topUsers = await User.find({ role: 'student' })
             .select('-password')
             .sort({ 'stats.totalSolved': -1 })
             .limit(parseInt(limit));
@@ -84,9 +84,10 @@ const getTopPerformers = async (req, res) => {
 // Get statistics overview
 const getStatsOverview = async (req, res) => {
     try {
-        const totalUsers = await User.countDocuments();
+        const totalUsers = await User.countDocuments({ role: 'student' });
         
         const avgStats = await User.aggregate([
+            { $match: { role: 'student' } },
             {
                 $group: {
                     _id: null,
@@ -98,7 +99,7 @@ const getStatsOverview = async (req, res) => {
             }
         ]);
 
-        const topUser = await User.findOne()
+        const topUser = await User.findOne({ role: 'student' })
             .select('-password')
             .sort({ 'stats.totalSolved': -1 });
 
