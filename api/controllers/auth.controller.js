@@ -22,12 +22,21 @@ const register = async (req, res) => {
 
         // Check if a verified user already exists with this email
         const existingUser = await User.findOne({ email: email.toLowerCase() });
-
+        
         if (existingUser && existingUser.isVerified) {
             return res.status(400).json({ 
                 success: false,
                 message: 'User with this email already exists' 
             });
+        }
+
+        const existingUsername = await User.findOne({leetcodeUsername: leetcodeUsername});
+
+        if(existingUsername){
+            return res.status(400).json({
+                success: false,
+                message: 'User with this leetcode username already exists'
+            })
         }
 
         if (!isAdmin && leetcodeUsername) {
