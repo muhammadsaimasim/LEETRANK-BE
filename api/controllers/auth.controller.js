@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { fetchLeetCodeStats, validateLeetCodeUsername } = require('../../utils/leetcodeService');
 const { sendOTPEmail } = require('../../utils/emailService');
+const { PROGRAMME_MAP } = require('../../utils/ENUM');
 
 const generateOTP = () => {
     return crypto.randomInt(100000, 999999).toString();
@@ -17,7 +18,7 @@ const OTP_EXPIRY_MINUTES = 10;
 // Student → validates LeetCode, creates user with isVerified: false, sends OTP
 const register = async (req, res) => {
     try {
-        const { name, email, password, role, leetcodeUsername, leetcodeProfileURL, batch, department } = req.body;
+        const { name, email, password, role, rollno, leetcodeUsername, leetcodeProfileURL, batch, department } = req.body;
         const isAdmin = role === 'admin';
 
         // Check if a verified user already exists with this email
@@ -48,6 +49,20 @@ const register = async (req, res) => {
                 return res.status(400).json({ 
                     success: false,
                     message: 'This LeetCode username is already registered' 
+                });
+            }
+        }
+
+        // Check if roll number is already taken by a verified user
+        if (!isAdmin && rollno) {
+            const rollnoExists = await User.findOne({
+                rollno: rollno.toUpperCase(),
+                isVerified: true
+            });
+            if (rollnoExists) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'This roll number is already registered'
                 });
             }
         }
@@ -88,7 +103,10 @@ const register = async (req, res) => {
             userData.leetcodeUsername = leetcodeUsername;
             userData.leetcodeProfileURL = leetcodeProfileURL;
             userData.batch = batch;
-            userData.department = department || 'Computer Science';
+            userData.rollno = rollno.toUpperCase();
+            const rollPrefix = rollno.toUpperCase().split('-')[0];
+            userData.programme = PROGRAMME_MAP[rollPrefix] || '';
+            userData.department = 'Computer Science';
             userData.stats = leetcodeStats;
         }
 

@@ -1,4 +1,5 @@
 const { body, validationResult } = require('express-validator');
+const { ALLOWED_EMAIL_DOMAIN, ROLL_NUMBER_REGEX } = require('../../utils/ENUM');
 
 // Validation error handler
 const handleValidationErrors = (req, res, next) => {
@@ -29,7 +30,13 @@ const validateRegister = [
         .notEmpty().withMessage('Email is required')
         .isEmail().withMessage('Please provide a valid email address')
         .normalizeEmail()
-        .isLength({ max: 255 }).withMessage('Email is too long'),
+        .isLength({ max: 255 }).withMessage('Email is too long')
+        .custom((value) => {
+            if (!value.endsWith(ALLOWED_EMAIL_DOMAIN)) {
+                throw new Error(`Only university emails (${ALLOWED_EMAIL_DOMAIN}) are allowed`);
+            }
+            return true;
+        }),
 
     body('password')
         .notEmpty().withMessage('Password is required')
@@ -66,10 +73,11 @@ const validateRegister = [
         .notEmpty().withMessage('Batch is required')
         .matches(/^(19|20)\d{2}$/).withMessage('Batch must be a valid year (e.g., 2024)'),
     
-    body('department')
-        .optional()
+    body('rollno')
+        .if(body('role').not().equals('admin'))
         .trim()
-        .isLength({ min: 2, max: 100 }).withMessage('Department must be between 2 and 100 characters'),
+        .notEmpty().withMessage('Roll number is required')
+        .matches(ROLL_NUMBER_REGEX).withMessage('Roll number must be in format XX-XXXXX (e.g. CT-12345, AI-00123)'),
     
     handleValidationErrors
 ];

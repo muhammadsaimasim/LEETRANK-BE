@@ -7,6 +7,7 @@ const cors = require("cors");
 const authRoutes = require('./api/routers/auth.router');
 const userRoutes = require('./api/routers/user.router');
 const leaderboardRoutes = require('./api/routers/leaderboard.router');
+const settingsRoutes = require('./api/routers/settings.router');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
+app.use("/api/settings", settingsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ 

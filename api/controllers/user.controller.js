@@ -65,7 +65,7 @@ const getUserById = async (req, res) => {
 // Update user profile (name, batch, department only - not leetcode info)
 const updateProfile = async (req, res) => {
     try {
-        const { name, batch, department } = req.body;
+        const { name, batch, rollno } = req.body;
         
         const user = await User.findById(req.user.userId);
         
@@ -79,7 +79,23 @@ const updateProfile = async (req, res) => {
         // Update only allowed fields
         if (name !== undefined) user.name = name;
         if (batch !== undefined) user.batch = batch;
-        if (department !== undefined) user.department = department;
+
+        // Handle rollno update with programme auto-derivation
+        if (rollno !== undefined) {
+            const upperRollno = rollno.toUpperCase();
+            // Check for duplicate rollno
+            const existing = await User.findOne({ rollno: upperRollno, _id: { $ne: user._id } });
+            if (existing) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'This roll number is already registered'
+                });
+            }
+            user.rollno = upperRollno;
+            const prefix = upperRollno.split('-')[0];
+            const { PROGRAMME_MAP } = require('../../utils/ENUM');
+            user.programme = PROGRAMME_MAP[prefix] || '';
+        }
 
         await user.save();
 
@@ -92,6 +108,8 @@ const updateProfile = async (req, res) => {
                 email: user.email,
                 batch: user.batch,
                 department: user.department,
+                rollno: user.rollno,
+                programme: user.programme,
                 leetcodeUsername: user.leetcodeUsername,
                 role: user.role
             }

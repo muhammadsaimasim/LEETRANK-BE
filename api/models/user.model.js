@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const {ROLESENUM} = require('../../utils/ENUM');
+const {ROLESENUM, ROLL_NUMBER_REGEX} = require('../../utils/ENUM');
 
 const UserSchema = new mongoose.Schema({
     name: { type: String, required: true },
@@ -7,12 +7,17 @@ const UserSchema = new mongoose.Schema({
     password: { type: String, required: true },
     leetcodeUsername: { type: String, unique: true},
     leetcodeProfileURL: { type: String },
+    rollno: {
+        type: String,
+        required: true,
+        unique: true,
+        match: [ROLL_NUMBER_REGEX, 'Roll number must be in format XX-XXXXX (e.g. CT-12345)']
+    },
+    programme: {type: String},
     batch: { type: String },
     department: {type: String, default: "Computer Science"},
     role: {type: String, enum: Object.values(ROLESENUM), default: "student"},
     isVerified: { type: Boolean, default: false },
-    programme: {type: String},
-    rollno: {type: String},
     stats: {
       totalSolved: { type: Number, default: 0 },
       easy: { type: Number, default: 0 },

@@ -1,5 +1,5 @@
 const { body, param, query, validationResult } = require('express-validator');
-const { ROLESENUM } = require('../../utils/ENUM');
+const { ROLESENUM, ROLL_NUMBER_REGEX } = require('../../utils/ENUM');
 
 // Validation error handler
 const handleValidationErrors = (req, res, next) => {
@@ -38,12 +38,18 @@ const validateUpdateProfile = [
         .notEmpty().withMessage('Department cannot be empty')
         .isLength({ min: 2, max: 100 }).withMessage('Department must be between 2 and 100 characters'),
     
+    body('rollno')
+        .optional()
+        .trim()
+        .notEmpty().withMessage('Roll number cannot be empty')
+        .matches(ROLL_NUMBER_REGEX).withMessage('Roll number must be in format XX-XXXXX (e.g. CT-12345)'),
+    
     // Ensure at least one field is provided
     body()
         .custom((value, { req }) => {
-            const { name, batch, department } = req.body;
-            if (!name && !batch && !department) {
-                throw new Error('At least one field (name, batch, or department) must be provided');
+            const { name, batch, department, rollno } = req.body;
+            if (!name && !batch && !department && !rollno) {
+                throw new Error('At least one field (name, batch, department, or roll number) must be provided');
             }
             return true;
         }),
