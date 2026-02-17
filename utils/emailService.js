@@ -1,17 +1,77 @@
-const nodemailer = require('nodemailer');
+const Brevo = require('@getbrevo/brevo');
+const { Resend } = require('resend');
+const sgMail = require('@sendgrid/mail');
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT) || 587,
-    secure: false,
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-    },
-});
+// ─── Provider 1: Brevo (300 emails/day free) ──────────────────
+const sendViaBrevo = async (to, subject, html) => {
+    const apiInstance = new Brevo.TransactionalEmailsApi();
+    apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+
+    const sendSmtpEmail = new Brevo.SendSmtpEmail();
+    sendSmtpEmail.subject = subject;
+    sendSmtpEmail.htmlContent = html;
+    sendSmtpEmail.sender = { name: 'LeetRank', email: process.env.EMAIL_FROM };
+    sendSmtpEmail.to = [{ email: to }];
+
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+};
+
+// ─── Provider 2: Resend (100 emails/day, 3k/month free) ──────
+const sendViaResend = async (to, subject, html) => {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    const { error } = await resend.emails.send({
+        from: `LeetRank <${process.env.EMAIL_FROM}>`,
+        to: [to],
+        subject,
+        html,
+    });
+
+    if (error) {
+        throw new Error(error.message || 'Resend API error');
+    }
+};
+
+// ─── Provider 3: SendGrid (100 emails/day free) ──────────────
+const sendViaSendGrid = async (to, subject, html) => {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+    await sgMail.send({
+        to,
+        from: { name: 'LeetRank', email: process.env.EMAIL_FROM },
+        subject,
+        html,
+    });
+};
+
+// ─── Fallback Chain: tries each provider in order ─────────────
+const providers = [
+    { name: 'Brevo', send: sendViaBrevo },
+    { name: 'Resend', send: sendViaResend },
+    { name: 'SendGrid', send: sendViaSendGrid },
+];
+
+const sendEmailWithFallback = async (to, subject, html) => {
+    const errors = [];
+
+    for (const provider of providers) {
+        try {
+            await provider.send(to, subject, html);
+            console.log(`[EmailService] Email sent successfully via ${provider.name}`);
+            return;
+        } catch (err) {
+            console.warn(`[EmailService] ${provider.name} failed: ${err.message} — trying next provider...`);
+            errors.push({ provider: provider.name, error: err.message });
+        }
+    }
+
+    // All providers failed
+    console.error('[EmailService] All email providers failed:', errors);
+    throw new Error('Failed to send email: all providers are down. Errors: ' + errors.map(e => `${e.provider}: ${e.error}`).join('; '));
+};
 
 /**
- * Send OTP email
+ * Send OTP email with multi-provider fallback
  * @param {string} to - Recipient email
  * @param {string} otp - The OTP code
  * @param {string} type - 'signup' | 'forgot-password'
@@ -232,14 +292,10 @@ const sendOTPEmail = async (to, otp, type) => {
 
     };
 
-    const mailOptions = {
-        from: `"LeetRank" <${process.env.SMTP_USER}>`,
-        to,
-        subject: subjects[type] || 'LeetRank - OTP Verification',
-        html: messages[type] || messages['signup'],
-    };
+    const subject = subjects[type] || 'LeetRank - OTP Verification';
+    const html = messages[type] || messages['signup'];
 
-    await transporter.sendMail(mailOptions);
+    await sendEmailWithFallback(to, subject, html);
 };
 
 module.exports = { sendOTPEmail };

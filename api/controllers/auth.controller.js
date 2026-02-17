@@ -12,6 +12,21 @@ const generateOTP = () => {
 };
 
 const OTP_EXPIRY_MINUTES = 10;
+const RATE_LIMIT_MAX_OTP = parseInt(process.env.RATE_LIMIT_MAX_OTP) || 5;
+const RATE_LIMIT_WINDOW_MINUTES = parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES) || 60;
+
+/**
+ * Check if the email has exceeded the OTP rate limit.
+ * Returns true if rate limited, false if OK.
+ */
+const checkOTPRateLimit = async (email) => {
+    const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000);
+    const recentCount = await OTP.countDocuments({
+        email: email.toLowerCase(),
+        createdAt: { $gte: windowStart },
+    });
+    return recentCount >= RATE_LIMIT_MAX_OTP;
+};
 
 // ─── Signup ───────────────────────────────────────────
 // Admin → creates user with isVerified: true, returns token immediately
@@ -145,6 +160,16 @@ const register = async (req, res) => {
         }
 
         // ── Student: send OTP for email verification ──
+
+        // Rate limit check
+        const isRateLimited = await checkOTPRateLimit(email);
+        if (isRateLimited) {
+            return res.status(429).json({
+                success: false,
+                message: `Too many OTP requests. Please try again after ${RATE_LIMIT_WINDOW_MINUTES} minutes.`,
+            });
+        }
+
         await OTP.deleteMany({ email: email.toLowerCase(), type: 'signup' });
 
         const otp = generateOTP();
@@ -348,7 +373,7 @@ const changePassword = async (req, res) => {
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
         user.password = hashedPassword;
-        await user.save();
+        await User.findByIdAndUpdate(req.user.userId, { password: hashedPassword });
 
         res.status(200).json({ 
             success: true,
@@ -411,6 +436,15 @@ const sendResetPasswordOTP = async (req, res) => {
             return res.status(200).json({
                 success: true,
                 message: 'If an account with that email exists, an OTP has been sent.',
+            });
+        }
+
+        // Rate limit check
+        const isRateLimited = await checkOTPRateLimit(email);
+        if (isRateLimited) {
+            return res.status(429).json({
+                success: false,
+                message: `Too many OTP requests. Please try again after ${RATE_LIMIT_WINDOW_MINUTES} minutes.`,
             });
         }
 
@@ -512,6 +546,15 @@ const resendOTP = async (req, res) => {
             if (!user) {
                 return res.status(200).json({ success: true, message: 'If an account exists, a new OTP has been sent.' });
             }
+        }
+
+        // Rate limit check
+        const isRateLimited = await checkOTPRateLimit(email);
+        if (isRateLimited) {
+            return res.status(429).json({
+                success: false,
+                message: `Too many OTP requests. Please try again after ${RATE_LIMIT_WINDOW_MINUTES} minutes.`,
+            });
         }
 
         // Delete old OTPs and generate new one
