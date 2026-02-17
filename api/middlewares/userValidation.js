@@ -39,7 +39,7 @@ const validateUpdateProfile = [
         .isLength({ min: 2, max: 100 }).withMessage('Department must be between 2 and 100 characters'),
     
     body('rollno')
-        .optional()
+        .optional({ values: 'falsy' })
         .trim()
         .notEmpty().withMessage('Roll number cannot be empty')
         .matches(ROLL_NUMBER_REGEX).withMessage('Roll number must be in format XX-XXXXX (e.g. CT-12345)'),

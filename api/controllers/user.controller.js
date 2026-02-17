@@ -76,12 +76,13 @@ const updateProfile = async (req, res) => {
             });
         }
 
-        // Update only allowed fields
-        if (name !== undefined) user.name = name;
-        if (batch !== undefined) user.batch = batch;
+        // Build update fields object
+        const updateFields = {};
+        if (name !== undefined) updateFields.name = name;
+        if (batch !== undefined) updateFields.batch = batch;
 
         // Handle rollno update with programme auto-derivation
-        if (rollno !== undefined) {
+        if (rollno) {
             const upperRollno = rollno.toUpperCase();
             // Check for duplicate rollno
             const existing = await User.findOne({ rollno: upperRollno, _id: { $ne: user._id } });
@@ -91,27 +92,33 @@ const updateProfile = async (req, res) => {
                     message: 'This roll number is already registered'
                 });
             }
-            user.rollno = upperRollno;
+            updateFields.rollno = upperRollno;
             const prefix = upperRollno.split('-')[0];
             const { PROGRAMME_MAP } = require('../../utils/ENUM');
-            user.programme = PROGRAMME_MAP[prefix] || '';
+            updateFields.programme = PROGRAMME_MAP[prefix] || '';
         }
 
-        await user.save();
+        // Only validate if rollno is being updated
+        const options = { new: true };
+        if (rollno !== undefined) {
+            options.runValidators = true;
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(req.user.userId, updateFields, options);
 
         res.status(200).json({ 
             success: true,
             message: 'Profile updated successfully',
             user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                batch: user.batch,
-                department: user.department,
-                rollno: user.rollno,
-                programme: user.programme,
-                leetcodeUsername: user.leetcodeUsername,
-                role: user.role
+                id: updatedUser._id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                batch: updatedUser.batch,
+                department: updatedUser.department,
+                rollno: updatedUser.rollno,
+                programme: updatedUser.programme,
+                leetcodeUsername: updatedUser.leetcodeUsername,
+                role: updatedUser.role
             }
         });
     } catch (error) {
@@ -172,7 +179,11 @@ const updateLeetCodeInfo = async (req, res) => {
             user.leetcodeProfileURL = leetcodeProfileURL;
         }
 
-        await user.save();
+        await await User.findByIdAndUpdate(req.user.userId, {
+                        leetcodeUsername: user.leetcodeUsername,
+                        leetcodeProfileURL: user.leetcodeProfileURL,
+                        stats: user.stats
+                    }, { new: true });
 
         res.status(200).json({ 
             success: true,
@@ -209,7 +220,7 @@ const syncLeetCodeStats = async (req, res) => {
         const leetcodeStats = await fetchLeetCodeStats(user.leetcodeUsername);
         
         user.stats = leetcodeStats;
-        await user.save();
+        await User.findByIdAndUpdate(req.user.userId, { stats: leetcodeStats }, { new: true });
 
         res.status(200).json({ 
             success: true,
@@ -373,7 +384,8 @@ const updateUserRole = async (req, res) => {
         }
 
         user.role = role;
-        await user.save();
+        // await user.findByIdAndUpdate();
+        await User.findByIdAndUpdate(id, { role }, { new: true });
 
         res.status(200).json({ 
             success: true,
