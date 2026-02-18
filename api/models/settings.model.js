@@ -5,7 +5,6 @@ const SettingsSchema = new mongoose.Schema({
     value: { type: mongoose.Schema.Types.Mixed, required: true },
 }, { timestamps: true });
 
-// Helper to get or create a settings document
 SettingsSchema.statics.getSetting = async function (key, defaultValue) {
     let setting = await this.findOne({ key });
     if (!setting) {

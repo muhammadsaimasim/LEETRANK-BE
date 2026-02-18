@@ -1,6 +1,5 @@
 const { query, validationResult } = require('express-validator');
 
-// Validation error handler
 const handleValidationErrors = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -16,7 +15,6 @@ const handleValidationErrors = (req, res, next) => {
     next();
 };
 
-// Get leaderboard validation
 const validateGetLeaderboard = [
     query('batch')
         .optional()
@@ -40,7 +38,6 @@ const validateGetLeaderboard = [
     handleValidationErrors
 ];
 
-// Get top performers validation
 const validateGetTopPerformers = [
     query('limit')
         .optional()

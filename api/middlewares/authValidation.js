@@ -1,7 +1,6 @@
 const { body, validationResult } = require('express-validator');
 const { ALLOWED_EMAIL_DOMAIN, ROLL_NUMBER_REGEX } = require('../../utils/ENUM');
 
-// Validation error handler
 const handleValidationErrors = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -17,7 +16,6 @@ const handleValidationErrors = (req, res, next) => {
     next();
 };
 
-// Register validation rules
 const validateRegister = [
     body('name')
         .trim()
@@ -47,7 +45,6 @@ const validateRegister = [
         .trim()
         .isIn(['student', 'admin']).withMessage('Role must be student or admin'),
     
-    // LeetCode fields only required for non-admin signup
     body('leetcodeUsername')
         .if(body('role').not().equals('admin'))
         .trim()
@@ -82,7 +79,6 @@ const validateRegister = [
     handleValidationErrors
 ];
 
-// Login validation rules
 const validateLogin = [
     body('email')
         .trim()
@@ -96,7 +92,6 @@ const validateLogin = [
     handleValidationErrors
 ];
 
-// Change password validation rules
 const validateChangePassword = [
     body('currentPassword')
         .notEmpty().withMessage('Current password is required'),
@@ -116,7 +111,6 @@ const validateChangePassword = [
     handleValidationErrors
 ];
 
-// Verify OTP validation rules
 const validateVerifyOTP = [
     body('email')
         .trim()
@@ -133,7 +127,6 @@ const validateVerifyOTP = [
     handleValidationErrors
 ];
 
-// Forgot password validation rules (just email)
 const validateForgotPassword = [
     body('email')
         .trim()
@@ -144,7 +137,6 @@ const validateForgotPassword = [
     handleValidationErrors
 ];
 
-// Reset password validation rules (email + otp + newPassword)
 const validateResetPassword = [
     body('email')
         .trim()
@@ -165,7 +157,6 @@ const validateResetPassword = [
     handleValidationErrors
 ];
 
-// Resend OTP validation rules
 const validateResendOTP = [
     body('email')
         .trim()

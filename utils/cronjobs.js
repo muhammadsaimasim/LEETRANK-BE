@@ -2,9 +2,6 @@ const cron = require('node-cron');
 const User = require('../models/user.model');
 const { fetchLeetCodeStats } = require('./leetcodeService');
 
-/**
- * Update all users' LeetCode stats
- */
 const updateAllUsersStats = async () => {
     try {
         console.log('Starting scheduled stats update...');
@@ -24,7 +21,6 @@ const updateAllUsersStats = async () => {
                 failCount++;
             }
             
-            // Add delay to avoid rate limiting
             await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
@@ -34,12 +30,7 @@ const updateAllUsersStats = async () => {
     }
 };
 
-/**
- * Initialize cron jobs
- * Runs every day at 8 AM
- */
 const initCronJobs = () => {
-    // Update all users' stats daily at 8 AM
     cron.schedule('0 8 * * *', async () => {
         console.log('Running daily stats update cron job...');
         await updateAllUsersStats();

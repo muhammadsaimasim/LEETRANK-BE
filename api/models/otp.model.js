@@ -22,7 +22,7 @@ const OTPSchema = new mongoose.Schema({
     expiresAt: { 
         type: Date, 
         required: true, 
-        index: { expires: 0 } // TTL index - MongoDB auto-deletes expired docs
+        index: { expires: 0 } 
     }
 }, { timestamps: true });
 

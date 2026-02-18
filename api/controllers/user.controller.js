@@ -1,7 +1,6 @@
 const User = require('../models/user.model');
 const { fetchLeetCodeStats, validateLeetCodeUsername } = require('../../utils/leetcodeService');
 
-// Get user profile (own profile)
 const getMyProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user.userId).select('-password');
@@ -27,7 +26,6 @@ const getMyProfile = async (req, res) => {
     }
 };
 
-// Get user by ID (public profile view)
 const getUserById = async (req, res) => {
     try {
         const user = await User.findById(req.params.id).select('-password');
@@ -46,7 +44,6 @@ const getUserById = async (req, res) => {
     } catch (error) {
         console.error('Get user error:', error);
         
-        // Handle invalid ObjectId format
         if (error.name === 'CastError') {
             return res.status(400).json({ 
                 success: false,
@@ -62,7 +59,6 @@ const getUserById = async (req, res) => {
     }
 };
 
-// Update user profile (name, batch, department only - not leetcode info)
 const updateProfile = async (req, res) => {
     try {
         const { name, batch, rollno } = req.body;
@@ -76,15 +72,12 @@ const updateProfile = async (req, res) => {
             });
         }
 
-        // Build update fields object
         const updateFields = {};
         if (name !== undefined) updateFields.name = name;
         if (batch !== undefined) updateFields.batch = batch;
 
-        // Handle rollno update with programme auto-derivation
         if (rollno) {
             const upperRollno = rollno.toUpperCase();
-            // Check for duplicate rollno
             const existing = await User.findOne({ rollno: upperRollno, _id: { $ne: user._id } });
             if (existing) {
                 return res.status(400).json({
@@ -98,7 +91,6 @@ const updateProfile = async (req, res) => {
             updateFields.programme = PROGRAMME_MAP[prefix] || '';
         }
 
-        // Only validate if rollno is being updated
         const options = { new: true };
         if (rollno !== undefined) {
             options.runValidators = true;
@@ -131,7 +123,6 @@ const updateProfile = async (req, res) => {
     }
 };
 
-// Update LeetCode credentials (username and profile URL)
 const updateLeetCodeInfo = async (req, res) => {
     try {
         const { leetcodeUsername, leetcodeProfileURL } = req.body;
@@ -145,7 +136,6 @@ const updateLeetCodeInfo = async (req, res) => {
             });
         }
 
-        // Check if new username is already taken by another user
         if (leetcodeUsername && leetcodeUsername !== user.leetcodeUsername) {
             const existingUser = await User.findOne({ 
                 leetcodeUsername,
@@ -159,7 +149,6 @@ const updateLeetCodeInfo = async (req, res) => {
                 });
             }
 
-            // Validate new LeetCode username
             const isValid = await validateLeetCodeUsername(leetcodeUsername);
             if (!isValid) {
                 return res.status(400).json({ 
@@ -170,7 +159,6 @@ const updateLeetCodeInfo = async (req, res) => {
 
             user.leetcodeUsername = leetcodeUsername;
             
-            // Fetch and update stats for new username
             const leetcodeStats = await fetchLeetCodeStats(leetcodeUsername);
             user.stats = leetcodeStats;
         }
@@ -204,7 +192,6 @@ const updateLeetCodeInfo = async (req, res) => {
     }
 };
 
-// Update user's LeetCode stats manually (sync with LeetCode)
 const syncLeetCodeStats = async (req, res) => {
     try {
         const user = await User.findById(req.user.userId);
@@ -216,7 +203,6 @@ const syncLeetCodeStats = async (req, res) => {
             });
         }
 
-        // Fetch latest LeetCode stats
         const leetcodeStats = await fetchLeetCodeStats(user.leetcodeUsername);
         
         user.stats = leetcodeStats;
@@ -237,7 +223,6 @@ const syncLeetCodeStats = async (req, res) => {
     }
 };
 
-// Get all users (Admin only - for management)
 const getAllUsers = async (req, res) => {
     try {
         const { page = 1, limit = 50, batch, department, role } = req.query;
@@ -275,7 +260,6 @@ const getAllUsers = async (req, res) => {
     }
 };
 
-// Delete user account (own account)
 const deleteMyAccount = async (req, res) => {
     try {
         const { password } = req.body;
@@ -289,7 +273,6 @@ const deleteMyAccount = async (req, res) => {
             });
         }
 
-        // Verify password before deletion
         const bcrypt = require('bcryptjs');
         const isMatch = await bcrypt.compare(password, user.password);
         
@@ -316,7 +299,6 @@ const deleteMyAccount = async (req, res) => {
     }
 };
 
-// Admin: Delete user by ID
 const deleteUserById = async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
@@ -328,7 +310,6 @@ const deleteUserById = async (req, res) => {
             });
         }
 
-        // Prevent deleting other admins
         if (user.role === 'admin' && req.user.userId !== user._id.toString()) {
             return res.status(403).json({ 
                 success: false,
@@ -360,7 +341,6 @@ const deleteUserById = async (req, res) => {
     }
 };
 
-// Admin: Update user role
 const updateUserRole = async (req, res) => {
     try {
         const { role } = req.body;
@@ -375,7 +355,6 @@ const updateUserRole = async (req, res) => {
             });
         }
 
-        // Prevent changing own role
         if (user._id.toString() === req.user.userId) {
             return res.status(403).json({ 
                 success: false,

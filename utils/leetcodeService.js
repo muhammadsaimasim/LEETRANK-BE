@@ -2,11 +2,6 @@ const axios = require('axios');
 
 const LEETCODE_GRAPHQL_API = 'https://leetcode.com/graphql';
 
-/**
- * Fetch LeetCode user stats using official GraphQL API
- * @param {string} username - LeetCode username
- * @returns {Promise<Object>} User stats object
- */
 const fetchLeetCodeStats = async (username) => {
     try {
         const query = `
@@ -41,7 +36,6 @@ const fetchLeetCodeStats = async (username) => {
             }
         );
 
-        // Check if user exists
         if (!response.data || !response.data.data || !response.data.data.matchedUser) {
             throw new Error('User not found');
         }
@@ -49,7 +43,6 @@ const fetchLeetCodeStats = async (username) => {
         const userData = response.data.data.matchedUser;
         const submissions = userData.submitStats.acSubmissionNum;
 
-        // Parse submission stats by difficulty
         let totalSolved = 0;
         let easy = 0;
         let medium = 0;
@@ -87,11 +80,6 @@ const fetchLeetCodeStats = async (username) => {
     }
 };
 
-/**
- * Validate if a LeetCode username exists
- * @param {string} username - LeetCode username
- * @returns {Promise<boolean>} True if user exists
- */
 const validateLeetCodeUsername = async (username) => {
     try {
         await fetchLeetCodeStats(username);

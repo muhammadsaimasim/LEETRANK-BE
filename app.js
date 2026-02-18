@@ -4,6 +4,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
+const { initCronJobs, updateAllUsersStats } = require('./utils/cronjobs');
+
 const authRoutes = require('./api/routers/auth.router');
 const userRoutes = require('./api/routers/user.router');
 const leaderboardRoutes = require('./api/routers/leaderboard.router');
@@ -57,6 +59,12 @@ mongoose
   .then(() => {
     console.log("✓ MongoDB connected successfully");
 
+    updateAllUsersStats().catch(err => 
+      console.error('Cold-start stats update failed:', err.message)
+    );
+
+    initCronJobs();
+
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
       console.log(`✓ Server running on port ${PORT}`);
@@ -72,38 +80,3 @@ process.on('unhandledRejection', (err) => {
   console.error('Unhandled Rejection:', err);
   process.exit(1);
 });
-
-
-// require("dotenv").config();
-
-// const express = require("express");
-// const mongoose = require("mongoose");
-// const cors = require("cors");
-
-// const app = express();
-
-// /* -------------------- MIDDLEWARES -------------------- */
-// app.use(express.json());
-// app.use(cors());
-
-// /* -------------------- ROUTES -------------------- */
-
-// // Health check
-// app.get("/", (req, res) => {
-//   res.status(200).json({ message: "Backend is running." });
-// });
-
-// /* -------------------- DATABASE + SERVER -------------------- */
-// mongoose
-//   .connect(process.env.MONGO_URI)
-//   .then(() => {
-//     console.log("MongoDB connected");
-
-//     const PORT = process.env.PORT || 5000;
-//     app.listen(PORT, () => {
-//       console.log(`Server running on port ${PORT}`);
-//     });
-//   })
-//   .catch((error) => {
-//     console.error("MongoDB connection failed:", error.message);
-//   });

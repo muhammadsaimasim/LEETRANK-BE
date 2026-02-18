@@ -21,7 +21,6 @@ const {
     validateResendOTP,
 } = require('../middlewares/authValidation');
 
-// Public routes
 router.post('/signup', validateRegister, register);
 router.post('/signup-verification', validateVerifyOTP, signupVerification);
 router.post('/login', validateLogin, login);
@@ -29,7 +28,6 @@ router.post('/forgot-password', validateForgotPassword, sendResetPasswordOTP);
 router.post('/reset-password', validateResetPassword, resetPassword);
 router.post('/resend-otp', validateResendOTP, resendOTP);
 
-// Protected routes
 router.post('/change-password', authMiddleware, validateChangePassword, changePassword);
 router.get('/verify', authMiddleware, verifyToken);
 

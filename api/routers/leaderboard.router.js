@@ -12,12 +12,10 @@ const {
     validateGetTopPerformers
 } = require('../middlewares/leaderboardValidation');
 
-// Public routes
 router.get('/', validateGetLeaderboard, getLeaderboard);
 router.get('/top', validateGetTopPerformers, getTopPerformers);
 router.get('/stats/overview', getStatsOverview);
 
-// Admin only routes
 router.post('/update-all', authMiddleware, adminMiddleware, updateAllStats);
 
 module.exports = router;

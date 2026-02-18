@@ -2,7 +2,6 @@ const Brevo = require('@getbrevo/brevo');
 const { Resend } = require('resend');
 const sgMail = require('@sendgrid/mail');
 
-// ─── Provider 1: Brevo (300 emails/day free) ──────────────────
 const sendViaBrevo = async (to, subject, html) => {
     const apiInstance = new Brevo.TransactionalEmailsApi();
     apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
@@ -16,7 +15,6 @@ const sendViaBrevo = async (to, subject, html) => {
     await apiInstance.sendTransacEmail(sendSmtpEmail);
 };
 
-// ─── Provider 2: Resend (100 emails/day, 3k/month free) ──────
 const sendViaResend = async (to, subject, html) => {
     const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -32,7 +30,6 @@ const sendViaResend = async (to, subject, html) => {
     }
 };
 
-// ─── Provider 3: SendGrid (100 emails/day free) ──────────────
 const sendViaSendGrid = async (to, subject, html) => {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
@@ -44,7 +41,6 @@ const sendViaSendGrid = async (to, subject, html) => {
     });
 };
 
-// ─── Fallback Chain: tries each provider in order ─────────────
 const providers = [
     { name: 'Brevo', send: sendViaBrevo },
     { name: 'Resend', send: sendViaResend },
@@ -65,17 +61,10 @@ const sendEmailWithFallback = async (to, subject, html) => {
         }
     }
 
-    // All providers failed
     console.error('[EmailService] All email providers failed:', errors);
     throw new Error('Failed to send email: all providers are down. Errors: ' + errors.map(e => `${e.provider}: ${e.error}`).join('; '));
 };
 
-/**
- * Send OTP email with multi-provider fallback
- * @param {string} to - Recipient email
- * @param {string} otp - The OTP code
- * @param {string} type - 'signup' | 'forgot-password'
- */
 const sendOTPEmail = async (to, otp, type) => {
     const subjects = {
         'signup': 'LeetRank - Verify Your Email',

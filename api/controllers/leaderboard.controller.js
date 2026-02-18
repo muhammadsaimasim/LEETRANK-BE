@@ -1,21 +1,17 @@
 const User = require('../models/user.model');
 const { fetchLeetCodeStats } = require('../../utils/leetcodeService');
 
-// Get leaderboard
 const getLeaderboard = async (req, res) => {
     try {
         const { batch, department, limit = 100, sortBy = 'totalSolved' } = req.query;
 
-        // Build filter (only show students on leaderboard)
         const filter = { role: 'student' };
         if (batch) filter.batch = batch;
         if (department) filter.department = department;
 
-        // Valid sort fields
         const validSortFields = ['totalSolved', 'easy', 'medium', 'hard', 'ranking'];
         const sortField = validSortFields.includes(sortBy) ? sortBy : 'totalSolved';
 
-        // Fetch users and sort
         const users = await User.find(filter)
             .select('-password')
             .sort({ [`stats.${sortField}`]: -1 })
@@ -31,7 +27,6 @@ const getLeaderboard = async (req, res) => {
     }
 };
 
-// Update all users' stats (Admin only)
 const updateAllStats = async (req, res) => {
     try {
         const users = await User.find({ role: 'student' });
@@ -62,7 +57,6 @@ const updateAllStats = async (req, res) => {
     }
 };
 
-// Get top performers
 const getTopPerformers = async (req, res) => {
     try {
         const { limit = 10 } = req.query;
@@ -81,7 +75,6 @@ const getTopPerformers = async (req, res) => {
     }
 };
 
-// Get statistics overview
 const getStatsOverview = async (req, res) => {
     try {
         const totalUsers = await User.countDocuments({ role: 'student' });

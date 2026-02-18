@@ -15,10 +15,7 @@ const OTP_EXPIRY_MINUTES = 10;
 const RATE_LIMIT_MAX_OTP = parseInt(process.env.RATE_LIMIT_MAX_OTP) || 5;
 const RATE_LIMIT_WINDOW_MINUTES = parseInt(process.env.RATE_LIMIT_WINDOW_MINUTES) || 60;
 
-/**
- * Check if the email has exceeded the OTP rate limit.
- * Returns true if rate limited, false if OK.
- */
+
 const checkOTPRateLimit = async (email) => {
     const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000);
     const recentCount = await OTP.countDocuments({
@@ -28,15 +25,11 @@ const checkOTPRateLimit = async (email) => {
     return recentCount >= RATE_LIMIT_MAX_OTP;
 };
 
-// ─── Signup ───────────────────────────────────────────
-// Admin → creates user with isVerified: true, returns token immediately
-// Student → validates LeetCode, creates user with isVerified: false, sends OTP
 const register = async (req, res) => {
     try {
         const { name, email, password, role, rollno, leetcodeUsername, leetcodeProfileURL, batch, department } = req.body;
         const isAdmin = role === 'admin';
 
-        // Check if a verified user already exists with this email
         const existingUser = await User.findOne({ email: email.toLowerCase() });
         
         if (existingUser && existingUser.isVerified) {
@@ -68,7 +61,6 @@ const register = async (req, res) => {
             }
         }
 
-        // Check if roll number is already taken by a verified user
         if (!isAdmin && rollno) {
             const rollnoExists = await User.findOne({
                 rollno: rollno.toUpperCase(),
@@ -84,7 +76,6 @@ const register = async (req, res) => {
 
         let leetcodeStats = {};
 
-        // Only validate LeetCode for non-admin users
         if (!isAdmin) {
             const isValidLeetCode = await validateLeetCodeUsername(leetcodeUsername);
             if (!isValidLeetCode) {
@@ -100,11 +91,9 @@ const register = async (req, res) => {
             }
         }
 
-        // Hash password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Build user data
         const userData = {
             name,
             email: email.toLowerCase(),
@@ -113,7 +102,6 @@ const register = async (req, res) => {
             isVerified: isAdmin ? true : false,
         };
 
-        // Add student-specific fields only for non-admin
         if (!isAdmin) {
             userData.leetcodeUsername = leetcodeUsername;
             userData.leetcodeProfileURL = leetcodeProfileURL;
@@ -128,17 +116,14 @@ const register = async (req, res) => {
         let user;
 
         if (existingUser && !existingUser.isVerified) {
-            // Update existing unverified user with new data
             Object.assign(existingUser, userData);
             await existingUser.save();
             user = existingUser;
         } else {
-            // Create new user
             user = new User(userData);
             await user.save();
         }
 
-        // ── Admin: return token immediately ──
         if (isAdmin) {
             const token = jwt.sign(
                 { userId: user._id, email: user.email, role: user.role },
@@ -159,9 +144,7 @@ const register = async (req, res) => {
             });
         }
 
-        // ── Student: send OTP for email verification ──
 
-        // Rate limit check
         const isRateLimited = await checkOTPRateLimit(email);
         if (isRateLimited) {
             return res.status(429).json({
@@ -198,13 +181,10 @@ const register = async (req, res) => {
     }
 };
 
-// ─── Signup Verification ──────────────────────────────
-// Verifies the OTP and sets isVerified = true, returns JWT
 const signupVerification = async (req, res) => {
     try {
         const { email, otp } = req.body;
 
-        // Find the OTP record
         const otpRecord = await OTP.findOne({
             email: email.toLowerCase(),
             type: 'signup',
@@ -226,13 +206,11 @@ const signupVerification = async (req, res) => {
             });
         }
 
-        // Verify OTP (hashed comparison)
         const isMatch = await bcrypt.compare(otp, otpRecord.otp);
         if (!isMatch) {
             return res.status(400).json({ success: false, message: 'Invalid OTP' });
         }
 
-        // Find the user and mark as verified
         const user = await User.findOne({ email: email.toLowerCase() });
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
@@ -241,10 +219,8 @@ const signupVerification = async (req, res) => {
         user.isVerified = true;
         await user.save();
 
-        // Cleanup OTP
         await OTP.deleteOne({ _id: otpRecord._id });
 
-        // Create JWT
         const token = jwt.sign(
             { userId: user._id, email: user.email, role: user.role },
             process.env.JWT_SECRET,
@@ -273,12 +249,10 @@ const signupVerification = async (req, res) => {
     }
 };
 
-// ─── Login ────────────────────────────────────────────
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Check if user exists
         const user = await User.findOne({ email: email.toLowerCase() });
         if (!user) {
             return res.status(401).json({ 
@@ -287,7 +261,6 @@ const login = async (req, res) => {
             });
         }
 
-        // Check if user is verified
         if (!user.isVerified) {
             return res.status(403).json({ 
                 success: false,
@@ -295,7 +268,6 @@ const login = async (req, res) => {
             });
         }
 
-        // Verify password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ 
@@ -304,7 +276,6 @@ const login = async (req, res) => {
             });
         }
 
-        // Create JWT token
         const token = jwt.sign(
             { userId: user._id, email: user.email, role: user.role },
             process.env.JWT_SECRET,
@@ -336,12 +307,10 @@ const login = async (req, res) => {
     }
 };
 
-// Change password
 const changePassword = async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
 
-        // Get user
         const user = await User.findById(req.user.userId);
         if (!user) {
             return res.status(404).json({ 
@@ -350,7 +319,6 @@ const changePassword = async (req, res) => {
             });
         }
 
-        // Verify current password
         const isMatch = await bcrypt.compare(currentPassword, user.password);
         if (!isMatch) {
             return res.status(401).json({ 
@@ -359,7 +327,6 @@ const changePassword = async (req, res) => {
             });
         }
 
-        // Check if new password is same as current
         const isSamePassword = await bcrypt.compare(newPassword, user.password);
         if (isSamePassword) {
             return res.status(400).json({ 
@@ -368,7 +335,6 @@ const changePassword = async (req, res) => {
             });
         }
 
-        // Hash new password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
@@ -389,7 +355,6 @@ const changePassword = async (req, res) => {
     }
 };
 
-// Verify token (useful for frontend to check if token is still valid)
 const verifyToken = async (req, res) => {
     try {
         const user = await User.findById(req.user.userId).select('-password');
@@ -425,21 +390,18 @@ const verifyToken = async (req, res) => {
     }
 };
 
-// ─── Send Reset Password OTP ─────────────────────────
 const sendResetPasswordOTP = async (req, res) => {
     try {
         const { email } = req.body;
 
         const user = await User.findOne({ email: email.toLowerCase(), isVerified: true });
         if (!user) {
-            // Don't reveal if user exists — always respond success
             return res.status(200).json({
                 success: true,
                 message: 'If an account with that email exists, an OTP has been sent.',
             });
         }
 
-        // Rate limit check
         const isRateLimited = await checkOTPRateLimit(email);
         if (isRateLimited) {
             return res.status(429).json({
@@ -448,7 +410,6 @@ const sendResetPasswordOTP = async (req, res) => {
             });
         }
 
-        // Delete previous OTPs
         await OTP.deleteMany({ email: email.toLowerCase(), type: 'forgot-password' });
 
         const otp = generateOTP();
@@ -473,13 +434,10 @@ const sendResetPasswordOTP = async (req, res) => {
     }
 };
 
-// ─── Reset Password ──────────────────────────────────
-// Takes email + otp + newPassword in a single call
 const resetPassword = async (req, res) => {
     try {
         const { email, otp, newPassword } = req.body;
 
-        // Find the OTP record
         const otpRecord = await OTP.findOne({
             email: email.toLowerCase(),
             type: 'forgot-password',
@@ -495,13 +453,11 @@ const resetPassword = async (req, res) => {
             return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
         }
 
-        // Verify OTP
         const isMatch = await bcrypt.compare(otp, otpRecord.otp);
         if (!isMatch) {
             return res.status(400).json({ success: false, message: 'Invalid OTP' });
         }
 
-        // Find user and update password
         const user = await User.findOne({ email: email.toLowerCase() });
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
@@ -511,7 +467,6 @@ const resetPassword = async (req, res) => {
         user.password = await bcrypt.hash(newPassword, salt);
         await user.save();
 
-        // Cleanup OTP
         await OTP.deleteOne({ _id: otpRecord._id });
 
         res.status(200).json({
@@ -524,7 +479,6 @@ const resetPassword = async (req, res) => {
     }
 };
 
-// ─── Resend OTP ──────────────────────────────────────
 const resendOTP = async (req, res) => {
     try {
         const { email, type } = req.body;
@@ -534,7 +488,6 @@ const resendOTP = async (req, res) => {
         }
 
         if (type === 'signup') {
-            // For signup, user must exist and be unverified
             const user = await User.findOne({ email: email.toLowerCase(), isVerified: false });
             if (!user) {
                 return res.status(400).json({ success: false, message: 'No pending registration found. Please register again.' });
@@ -548,7 +501,6 @@ const resendOTP = async (req, res) => {
             }
         }
 
-        // Rate limit check
         const isRateLimited = await checkOTPRateLimit(email);
         if (isRateLimited) {
             return res.status(429).json({
@@ -557,7 +509,6 @@ const resendOTP = async (req, res) => {
             });
         }
 
-        // Delete old OTPs and generate new one
         await OTP.deleteMany({ email: email.toLowerCase(), type });
 
         const otp = generateOTP();

@@ -10,7 +10,6 @@ const DEFAULT_LEADERBOARD_COLUMNS = {
     medium: true,
 };
 
-// GET /settings/leaderboard-columns — public, anyone can read
 const getLeaderboardColumns = async (req, res) => {
     try {
         const columns = await Settings.getSetting('leaderboardColumns', DEFAULT_LEADERBOARD_COLUMNS);
@@ -21,7 +20,6 @@ const getLeaderboardColumns = async (req, res) => {
     }
 };
 
-// PUT /settings/leaderboard-columns — admin only
 const updateLeaderboardColumns = async (req, res) => {
     try {
         const { columns } = req.body;
@@ -29,7 +27,6 @@ const updateLeaderboardColumns = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid columns configuration' });
         }
 
-        // Validate that only known keys are provided
         const allowedKeys = Object.keys(DEFAULT_LEADERBOARD_COLUMNS);
         const sanitized = {};
         for (const key of allowedKeys) {

@@ -1,7 +1,6 @@
 const { body, param, query, validationResult } = require('express-validator');
 const { ROLESENUM, ROLL_NUMBER_REGEX } = require('../../utils/ENUM');
 
-// Validation error handler
 const handleValidationErrors = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -17,7 +16,6 @@ const handleValidationErrors = (req, res, next) => {
     next();
 };
 
-// Update profile validation
 const validateUpdateProfile = [
     body('name')
         .optional()
@@ -44,7 +42,6 @@ const validateUpdateProfile = [
         .notEmpty().withMessage('Roll number cannot be empty')
         .matches(ROLL_NUMBER_REGEX).withMessage('Roll number must be in format XX-XXXXX (e.g. CT-12345)'),
     
-    // Ensure at least one field is provided
     body()
         .custom((value, { req }) => {
             const { name, batch, department, rollno } = req.body;
@@ -57,7 +54,6 @@ const validateUpdateProfile = [
     handleValidationErrors
 ];
 
-// Update LeetCode info validation
 const validateUpdateLeetCodeInfo = [
     body('leetcodeUsername')
         .optional()
@@ -78,7 +74,6 @@ const validateUpdateLeetCodeInfo = [
             return true;
         }),
     
-    // Ensure at least one field is provided
     body()
         .custom((value, { req }) => {
             const { leetcodeUsername, leetcodeProfileURL } = req.body;
@@ -91,7 +86,6 @@ const validateUpdateLeetCodeInfo = [
     handleValidationErrors
 ];
 
-// Delete account validation
 const validateDeleteAccount = [
     body('password')
         .notEmpty().withMessage('Password is required to delete account'),
@@ -99,7 +93,6 @@ const validateDeleteAccount = [
     handleValidationErrors
 ];
 
-// User ID parameter validation
 const validateUserId = [
     param('id')
         .notEmpty().withMessage('User ID is required')
@@ -108,7 +101,6 @@ const validateUserId = [
     handleValidationErrors
 ];
 
-// Update user role validation (Admin only)
 const validateUpdateUserRole = [
     param('id')
         .notEmpty().withMessage('User ID is required')
@@ -121,7 +113,6 @@ const validateUpdateUserRole = [
     handleValidationErrors
 ];
 
-// Get all users query validation (Admin only)
 const validateGetAllUsers = [
     query('page')
         .optional()
