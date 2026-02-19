@@ -59,7 +59,7 @@ mongoose
   .then(() => {
     console.log("✓ MongoDB connected successfully");
 
-    initCronJobs();
+    //initCronJobs();
 
     setTimeout(() => {
       coldStartSync().catch(err =>
