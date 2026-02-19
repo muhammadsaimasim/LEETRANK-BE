@@ -4,14 +4,37 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
-// const { initCronJobs, coldStartSync } = require('./utils/cronjobs');
-
 const authRoutes = require('./api/routers/auth.router');
 const userRoutes = require('./api/routers/user.router');
 const leaderboardRoutes = require('./api/routers/leaderboard.router');
 const settingsRoutes = require('./api/routers/settings.router');
+const cronRoutes = require('./api/routers/cron.router');
 
 const app = express();
+
+// Cache MongoDB connection across serverless invocations
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected) return;
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    isConnected = true;
+    console.log("✓ MongoDB connected successfully");
+  } catch (error) {
+    console.error("✗ MongoDB connection failed:", error.message);
+    throw error;
+  }
+};
+
+// Connect to DB before handling any request
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Database connection failed' });
+  }
+});
 
 app.use(express.json());
 app.use(cors({
@@ -37,6 +60,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/settings", settingsRoutes);
+app.use("/api/cron", cronRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ 
@@ -54,31 +78,15 @@ app.use((err, req, res, next) => {
   });
 });
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("✓ MongoDB connected successfully");
-
-    //initCronJobs();
-
-    // setTimeout(() => {
-    //   coldStartSync().catch(err =>
-    //     console.error('Cold-start sync failed:', err.message)
-    //   );
-    // }, 30000);
-
-    const PORT = process.env.PORT || 5000;
+// Only start the server when running locally (not on Vercel)
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  connectDB().then(() => {
     app.listen(PORT, () => {
       console.log(`✓ Server running on port ${PORT}`);
       console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
     });
-  })
-  .catch((error) => {
-    console.error("✗ MongoDB connection failed:", error.message);
-    process.exit(1);
-  });
+  }).catch(() => process.exit(1));
+}
 
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err);
-  process.exit(1);
-});
+module.exports = app;
