@@ -4,7 +4,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 
-const { initCronJobs, coldStartSync } = require('./utils/cronjobs');
+// const { initCronJobs, coldStartSync } = require('./utils/cronjobs');
 
 const authRoutes = require('./api/routers/auth.router');
 const userRoutes = require('./api/routers/user.router');
@@ -61,11 +61,11 @@ mongoose
 
     //initCronJobs();
 
-    setTimeout(() => {
-      coldStartSync().catch(err =>
-        console.error('Cold-start sync failed:', err.message)
-      );
-    }, 30000);
+    // setTimeout(() => {
+    //   coldStartSync().catch(err =>
+    //     console.error('Cold-start sync failed:', err.message)
+    //   );
+    // }, 30000);
 
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
