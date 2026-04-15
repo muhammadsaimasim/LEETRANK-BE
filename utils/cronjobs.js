@@ -11,7 +11,7 @@ const { fetchLeetCodeStats } = require('./leetcodeService');
  * Limited to a small batch to stay within Vercel's 10s serverless timeout.
  */
 const updateAllUsersStats = async () => {
-    const BATCH_SIZE = 5; // Safely fits within 10s with 1s delays
+    const BATCH_SIZE = 3; // 3 users × (≤2s LeetCode API + 1s delay) ≈ 8s, safely under Vercel's 10s limit
     
     // Find verified students who haven't been updated recently (or ever)
     const users = await User.find({ role: 'student', isVerified: true })

@@ -6,9 +6,14 @@ const { updateAllUsersStats } = require('../../utils/cronjobs');
  */
 const handleCronUpdateStats = async (req, res) => {
     try {
-        // Verify the request is from Vercel Cron
+        // Verify the request is from the authorized scheduler
+        const cronSecret = process.env.CRON_SECRET;
+        if (!cronSecret) {
+            console.error('CRON_SECRET env var is not set');
+            return res.status(500).json({ success: false, message: 'Server misconfiguration' });
+        }
         const authHeader = req.headers['authorization'];
-        if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        if (authHeader !== `Bearer ${cronSecret}`) {
             return res.status(401).json({ success: false, message: 'Unauthorized' });
         }
 
