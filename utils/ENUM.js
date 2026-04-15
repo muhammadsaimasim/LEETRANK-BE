@@ -17,13 +17,13 @@ const PROGRAMME_MAP = {
     GA: "BS CS (GA)",
 };
 
-// const PROGRAMMESENUM = {
-//     BSCS: "BSCS",
-//     BSAI: "BSAI", 
-//     BSCR: "BSCR",
-//     BSDA: "BSDA",
-//     BSGA: "BSGA"
-// }
+const PROGRAMMES = [
+    "BSCS",
+    "BSCS (AI)",
+    "BSCS (CR)",
+    "BSCS (DS)",
+    "BSCS (GA)"
+];
 
 module.exports = {
     ROLESENUM,
@@ -31,4 +31,5 @@ module.exports = {
     ROLL_NUMBER_REGEX,
     ROLL_NUMBER_PREFIXES,
     PROGRAMME_MAP,
+    PROGRAMMES,
 }

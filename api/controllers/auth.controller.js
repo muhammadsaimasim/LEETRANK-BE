@@ -108,7 +108,7 @@ const register = async (req, res) => {
             userData.batch = batch;
             userData.rollno = rollno.toUpperCase();
             const rollPrefix = rollno.toUpperCase().split('-')[0];
-            userData.programme = PROGRAMME_MAP[rollPrefix] || '';
+            userData.programme = req.body.programme || PROGRAMME_MAP[rollPrefix] || '';
             userData.department = 'Computer Science';
             userData.stats = leetcodeStats;
         }
