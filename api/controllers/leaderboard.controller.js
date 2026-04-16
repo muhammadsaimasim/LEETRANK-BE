@@ -3,7 +3,7 @@ const { fetchLeetCodeStats } = require('../../utils/leetcodeService');
 
 const getLeaderboard = async (req, res) => {
     try {
-        const { batch, department, limit = 100, sortBy = 'totalSolved' } = req.query;
+        const { batch, department, limit = 500, sortBy = 'totalSolved' } = req.query;
 
         const filter = { role: 'student' };
         if (batch) filter.batch = batch;
