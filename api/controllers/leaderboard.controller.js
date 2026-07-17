@@ -5,7 +5,7 @@ const getLeaderboard = async (req, res) => {
     try {
         const { batch, department, limit = 500, sortBy = 'totalSolved' } = req.query;
 
-        const filter = { role: 'student' };
+        const filter = { role: 'student', isVerified: true };
         if (batch) filter.batch = batch;
         if (department) filter.department = department;
 
@@ -29,7 +29,7 @@ const getLeaderboard = async (req, res) => {
 
 const updateAllStats = async (req, res) => {
     try {
-        const users = await User.find({ role: 'student' });
+        const users = await User.find({ role: 'student', isVerified: true });
         let successCount = 0;
         let failCount = 0;
 
@@ -61,7 +61,7 @@ const getTopPerformers = async (req, res) => {
     try {
         const { limit = 10 } = req.query;
 
-        const topUsers = await User.find({ role: 'student' })
+        const topUsers = await User.find({ role: 'student', isVerified: true })
             .select('-password')
             .sort({ 'stats.totalSolved': -1 })
             .limit(parseInt(limit));
@@ -77,10 +77,10 @@ const getTopPerformers = async (req, res) => {
 
 const getStatsOverview = async (req, res) => {
     try {
-        const totalUsers = await User.countDocuments({ role: 'student' });
-        
+        const totalUsers = await User.countDocuments({ role: 'student', isVerified: true });
+
         const avgStats = await User.aggregate([
-            { $match: { role: 'student' } },
+            { $match: { role: 'student', isVerified: true } },
             {
                 $group: {
                     _id: null,
@@ -92,7 +92,7 @@ const getStatsOverview = async (req, res) => {
             }
         ]);
 
-        const topUser = await User.findOne({ role: 'student' })
+        const topUser = await User.findOne({ role: 'student', isVerified: true })
             .select('-password')
             .sort({ 'stats.totalSolved': -1 });
 
