@@ -5,7 +5,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { fetchLeetCodeStats, validateLeetCodeUsername } = require('../../utils/leetcodeService');
 const { sendOTPEmail } = require('../../utils/emailService');
-const { PROGRAMME_MAP } = require('../../utils/ENUM');
 
 const generateOTP = () => {
     return crypto.randomInt(100000, 999999).toString();
@@ -27,7 +26,7 @@ const checkOTPRateLimit = async (email) => {
 
 const register = async (req, res) => {
     try {
-        const { name, email, password, role, rollno, leetcodeUsername, leetcodeProfileURL, batch, department } = req.body;
+        const { name, email, password, role, rollno, programme, leetcodeUsername, leetcodeProfileURL, batch, department } = req.body;
         const isAdmin = role === 'admin';
 
         const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -107,8 +106,8 @@ const register = async (req, res) => {
             userData.leetcodeProfileURL = leetcodeProfileURL;
             userData.batch = batch;
             userData.rollno = rollno.toUpperCase();
-            const rollPrefix = rollno.toUpperCase().split('-')[0];
-            userData.programme = req.body.programme || PROGRAMME_MAP[rollPrefix] || '';
+            // Programme is chosen by the user and is independent of the roll number prefix.
+            userData.programme = programme;
             userData.department = 'Computer Science';
             userData.stats = leetcodeStats;
         }
@@ -434,6 +433,38 @@ const sendResetPasswordOTP = async (req, res) => {
     }
 };
 
+const verifyResetPasswordOTP = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+
+        const otpRecord = await OTP.findOne({
+            email: email.toLowerCase(),
+            type: 'forgot-password',
+            verified: false,
+        });
+
+        if (!otpRecord) {
+            return res.status(400).json({ success: false, message: 'OTP not found or expired. Please request a new one.' });
+        }
+
+        if (new Date() > otpRecord.expiresAt) {
+            await OTP.deleteOne({ _id: otpRecord._id });
+            return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
+        }
+
+        const isMatch = await bcrypt.compare(otp, otpRecord.otp);
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: 'Invalid OTP' });
+        }
+
+        // The OTP is kept intact — it is consumed by /reset-password.
+        res.status(200).json({ success: true, message: 'OTP verified' });
+    } catch (error) {
+        console.error('Verify reset password OTP error:', error);
+        res.status(500).json({ success: false, message: 'Failed to verify OTP', error: error.message });
+    }
+};
+
 const resetPassword = async (req, res) => {
     try {
         const { email, otp, newPassword } = req.body;
@@ -540,6 +571,7 @@ module.exports = {
     changePassword,
     verifyToken,
     sendResetPasswordOTP,
+    verifyResetPasswordOTP,
     resetPassword,
     resendOTP,
 };

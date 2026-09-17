@@ -2,24 +2,39 @@ const Brevo = require('@getbrevo/brevo');
 const { Resend } = require('resend');
 const sgMail = require('@sendgrid/mail');
 
+// Values pasted into a hosting dashboard often carry stray whitespace or quotes,
+// which silently breaks the API key. Normalise before use.
+const env = (name) => (process.env[name] || '').trim().replace(/^["']|["']$/g, '');
+
+const from = () => env('EMAIL_FROM');
+
 const sendViaBrevo = async (to, subject, html) => {
     const apiInstance = new Brevo.TransactionalEmailsApi();
-    apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+    apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, env('BREVO_API_KEY'));
 
     const sendSmtpEmail = new Brevo.SendSmtpEmail();
     sendSmtpEmail.subject = subject;
     sendSmtpEmail.htmlContent = html;
-    sendSmtpEmail.sender = { name: 'LeetRank', email: process.env.EMAIL_FROM };
+    sendSmtpEmail.sender = { name: 'LeetRank', email: from() };
     sendSmtpEmail.to = [{ email: to }];
 
-    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    try {
+        await apiInstance.sendTransacEmail(sendSmtpEmail);
+    } catch (err) {
+        // The Brevo SDK wraps the real reason in the HTTP response body.
+        const body = err.response?.body || err.body;
+        if (body) {
+            throw new Error(`${body.code || err.message}: ${body.message || ''}`.trim());
+        }
+        throw err;
+    }
 };
 
 const sendViaResend = async (to, subject, html) => {
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = new Resend(env('RESEND_API_KEY'));
 
     const { error } = await resend.emails.send({
-        from: `LeetRank <${process.env.EMAIL_FROM}>`,
+        from: `LeetRank <${from()}>`,
         to: [to],
         subject,
         html,
@@ -31,26 +46,49 @@ const sendViaResend = async (to, subject, html) => {
 };
 
 const sendViaSendGrid = async (to, subject, html) => {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    sgMail.setApiKey(env('SENDGRID_API_KEY'));
 
-    await sgMail.send({
-        to,
-        from: { name: 'LeetRank', email: process.env.EMAIL_FROM },
-        subject,
-        html,
-    });
+    try {
+        await sgMail.send({
+            to,
+            from: { name: 'LeetRank', email: from() },
+            subject,
+            html,
+        });
+    } catch (err) {
+        const errors = err.response?.body?.errors;
+        if (errors?.length) {
+            throw new Error(errors.map(e => e.message).join('; '));
+        }
+        throw err;
+    }
 };
 
 const providers = [
-    { name: 'Brevo', send: sendViaBrevo },
-    { name: 'Resend', send: sendViaResend },
-    { name: 'SendGrid', send: sendViaSendGrid },
+    { name: 'Brevo', key: 'BREVO_API_KEY', send: sendViaBrevo },
+    { name: 'Resend', key: 'RESEND_API_KEY', send: sendViaResend },
+    { name: 'SendGrid', key: 'SENDGRID_API_KEY', send: sendViaSendGrid },
 ];
 
 const sendEmailWithFallback = async (to, subject, html) => {
+    if (!from()) {
+        throw new Error('EMAIL_FROM is not configured on this environment');
+    }
+
+    const configured = providers.filter(p => env(p.key));
+    if (configured.length === 0) {
+        const missing = providers.map(p => p.key).join(', ');
+        throw new Error(`No email provider is configured on this environment (missing: ${missing})`);
+    }
+
+    const skipped = providers.filter(p => !env(p.key)).map(p => p.name);
+    if (skipped.length) {
+        console.warn(`[EmailService] Skipping unconfigured providers: ${skipped.join(', ')}`);
+    }
+
     const errors = [];
 
-    for (const provider of providers) {
+    for (const provider of configured) {
         try {
             await provider.send(to, subject, html);
             console.log(`[EmailService] Email sent successfully via ${provider.name}`);

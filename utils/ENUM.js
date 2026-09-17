@@ -9,14 +9,7 @@ const ROLL_NUMBER_REGEX = /^(CT|AI|DS|CR|GA)-\d{5}$/;
 
 const ROLL_NUMBER_PREFIXES = ["CT", "AI", "DS", "CR", "GA"];
 
-const PROGRAMME_MAP = {
-    CT: "BS CS",
-    AI: "BS CS (AI)",
-    DS: "BS CS (DS)",
-    CR: "BS CS (CR)",
-    GA: "BS CS (GA)",
-};
-
+// Programme is selected by the user and is NOT derived from the roll number prefix.
 const PROGRAMMES = [
     "BSCS",
     "BSCS (AI)",
@@ -30,6 +23,5 @@ module.exports = {
     ALLOWED_EMAIL_DOMAIN,
     ROLL_NUMBER_REGEX,
     ROLL_NUMBER_PREFIXES,
-    PROGRAMME_MAP,
     PROGRAMMES,
 }

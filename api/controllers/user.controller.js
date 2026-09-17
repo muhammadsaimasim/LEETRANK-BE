@@ -61,7 +61,7 @@ const getUserById = async (req, res) => {
 
 const updateProfile = async (req, res) => {
     try {
-        const { name, batch, rollno } = req.body;
+        const { name, batch, rollno, programme } = req.body;
         
         const user = await User.findById(req.user.userId);
         
@@ -75,6 +75,8 @@ const updateProfile = async (req, res) => {
         const updateFields = {};
         if (name !== undefined) updateFields.name = name;
         if (batch !== undefined) updateFields.batch = batch;
+        // Programme is set independently of the roll number — changing one never changes the other.
+        if (programme !== undefined) updateFields.programme = programme;
 
         if (rollno) {
             const upperRollno = rollno.toUpperCase();
@@ -86,9 +88,6 @@ const updateProfile = async (req, res) => {
                 });
             }
             updateFields.rollno = upperRollno;
-            const prefix = upperRollno.split('-')[0];
-            const { PROGRAMME_MAP } = require('../../utils/ENUM');
-            updateFields.programme = PROGRAMME_MAP[prefix] || '';
         }
 
         const options = { new: true };

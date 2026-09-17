@@ -1,5 +1,5 @@
 const { body, validationResult } = require('express-validator');
-const { ALLOWED_EMAIL_DOMAIN, ROLL_NUMBER_REGEX } = require('../../utils/ENUM');
+const { ALLOWED_EMAIL_DOMAIN, ROLL_NUMBER_REGEX, PROGRAMMES } = require('../../utils/ENUM');
 
 const handleValidationErrors = (req, res, next) => {
     const errors = validationResult(req);
@@ -75,7 +75,14 @@ const validateRegister = [
         .trim()
         .notEmpty().withMessage('Roll number is required')
         .matches(ROLL_NUMBER_REGEX).withMessage('Roll number must be in format XX-XXXXX (e.g. CT-12345, AI-00123)'),
-    
+
+    // Independent of the roll number prefix — any programme may go with any prefix.
+    body('programme')
+        .if(body('role').not().equals('admin'))
+        .trim()
+        .notEmpty().withMessage('Programme is required')
+        .isIn(PROGRAMMES).withMessage(`Programme must be one of: ${PROGRAMMES.join(', ')}`),
+
     handleValidationErrors
 ];
 
